@@ -1,4 +1,4 @@
-package myersdiff
+package godiff
 
 import (
 	"fmt"
@@ -10,6 +10,16 @@ type Diff[T comparable] struct {
 	Type  DiffType
 	Index int
 	Value T
+
+	// source string indices range affected
+	// populated for deletions and matches
+	A1 int
+	A2 int
+
+	// dest string indices range affected
+	// populated for insertions
+	B1 int
+	B2 int
 }
 
 type DiffType string
@@ -17,6 +27,7 @@ type DiffType string
 const (
 	Insert DiffType = "insert"
 	Delete DiffType = "delete"
+	Equal  DiffType = "equal"
 )
 
 // Myers Diff Algorithm
@@ -34,6 +45,8 @@ func GetDiff[T comparable](src []T, dest []T) []Diff[T] {
 		ck := curr[0] - curr[1]
 		nk := next[0] - next[1]
 		x, y := curr[0], curr[1]
+
+		// backtrack the snake containing matching characters
 
 		var diff Diff[T]
 		if ck > nk {

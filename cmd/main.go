@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ericoericochen/myersdiff"
+import "github.com/ericoericochen/godiff"
 
 func main() {
 	// src := []string{"A", "B", "C"}
@@ -9,6 +9,6 @@ func main() {
 	src := []string{"A", "B", "C", "A", "B", "B", "A"}
 	dest := []string{"C", "B", "A", "B", "A", "C"}
 
-	diffs := myersdiff.GetDiff(src, dest)
-	myersdiff.DisplayDiff(src, diffs)
+	diffs := godiff.GetDiff(src, dest)
+	godiff.DisplayDiff(src, diffs)
 }
