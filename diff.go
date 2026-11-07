@@ -134,7 +134,6 @@ func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
 
 		// did we make an insertion or deletion to get to the current node?
 		if k == -d || (k != d && trace[d-1][k-1] < trace[d-1][k+1]) {
-			// node = [2]int{}
 			k = k + 1
 		} else {
 			k = k - 1
@@ -187,6 +186,43 @@ func DisplayDiff[T comparable](src []T, diffs []Diff[T]) {
 		}
 		if i < len(src) && !charDeleted {
 			fmt.Println(fmt.Sprintf("  %v", src[i]))
+		}
+	}
+}
+
+func Display[T comparable](a, b []T, diffs []Diff[T]) {
+	for _, diff := range diffs {
+		switch diff.Type {
+		case Equal:
+			{
+				lines := a[diff.A1:diff.A2]
+				for _, line := range lines {
+					fmt.Println(fmt.Sprintf("  %v", line))
+				}
+			}
+		case Insert:
+			{
+				lines := b[diff.B1:diff.B2]
+				for _, line := range lines {
+					fmt.Println(
+						fmt.Sprintf("\033[42m%s\033[0m",
+							fmt.Sprintf("+ %v", line),
+						),
+					)
+				}
+			}
+
+		case Delete:
+			{
+				fmt.Println("delete: ", diff.A1, diff.A2)
+				lines := a[diff.A1:diff.A2]
+				for _, line := range lines {
+					fmt.Println(
+						fmt.Sprintf("\033[41m%s\033[0m",
+							fmt.Sprintf("- %v", line),
+						))
+				}
+			}
 		}
 	}
 }
