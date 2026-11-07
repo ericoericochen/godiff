@@ -24,7 +24,7 @@ const (
 
 // Myers Diff Algorithm
 // https://publications.mpi-cbg.de/Myers_1986_6330.pdf
-func GetDiff[T comparable](src []T, dest []T) []Diff {
+func GetDiff(src []string, dest []string) []Diff {
 	trace := myersDiffTrace(src, dest)
 	path := backtrack(src, dest, trace)
 	diffs := []Diff{}
@@ -64,7 +64,7 @@ func GetDiff[T comparable](src []T, dest []T) []Diff {
 	return diffs
 }
 
-func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
+func myersDiffTrace(src []string, dest []string) []map[int]int {
 	// construct (D + 1) x 2(D + 1) array with each coordinate (d, k)
 	// representing depth and the diagonal k = x - y
 	// each cell contains the greatest x reached at depth d at diagonal k
@@ -119,7 +119,7 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 	panic("impossible")
 }
 
-func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
+func backtrack(src []string, dest []string, trace []map[int]int) [][2]int {
 	M, N := len(src), len(dest)
 	depth := len(trace) - 1 // depth of path
 
@@ -153,7 +153,7 @@ func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
 	return path
 }
 
-func Display[T comparable](a, b []T, diffs []Diff) {
+func Display(a, b []string, diffs []Diff) {
 	for _, diff := range diffs {
 		switch diff.Type {
 		case Equal:

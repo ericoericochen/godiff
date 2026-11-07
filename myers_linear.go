@@ -19,6 +19,7 @@ func (r boundingRect) String() string {
 }
 
 // diagonal along the edit graph where the elements match
+// u - v = x - y
 type myersSnake struct {
 	// start coordinate of snake
 	u int
@@ -29,9 +30,11 @@ type myersSnake struct {
 	y int
 }
 
-func MyersDiffLinear[T comparable](a, b []T) []Diff {
-	fmt.Println("myers diff linear")
+func (s myersSnake) empty() bool {
+	return s.x == s.u && s.y == s.v
+}
 
+func MyersDiffLinear(a, b []string) []Diff {
 	rect := boundingRect{
 		left:   0,
 		top:    0,
@@ -41,148 +44,101 @@ func MyersDiffLinear[T comparable](a, b []T) []Diff {
 	return myersDiffLinear(a, b, rect)
 }
 
-func myersDiffLinear[T comparable](a, b []T, rect boundingRect) []Diff {
+func myersDiffLinear(a, b []string, rect boundingRect) []Diff {
 	fmt.Println("Myers Diff Linear: ", rect)
 
 	// base case
-
 	M := rect.right - rect.left
 	N := rect.bottom - rect.top
+	diffs := []Diff{}
 
 	// empty rect = no diffs
 	if M == 0 && N == 0 {
-		return []Diff{}
+		return diffs
 	}
 
 	// deletion
 	if M > 0 && N == 0 {
 		fmt.Println("deletion", rect, M, N)
-		return []Diff{
-			{
-				Type: Delete,
-				A1:   rect.left,
-				A2:   rect.right,
-			},
-		}
+		diffs = append(diffs, Diff{Type: Delete, A1: rect.left, A2: rect.right})
+		return diffs
 	}
 
 	// insertion
 	if N > 0 && M == 0 {
 		fmt.Println("insertion", rect, M, N)
-		return []Diff{
-			{
-				Type: Insert,
-				B1:   rect.top,
-				B2:   rect.bottom,
-			},
-		}
+		diffs = append(diffs, Diff{Type: Insert, B1: rect.top, B2: rect.bottom})
+		return diffs
 	}
 
-	// fmt.Println("finding the middle snake of: ", rect)
 	// find the middle snake in the edit graph
-	// perform a forward and backward search and find where they overlap
+	snake := findMiddleSnake(a, b, rect)
 
-	// the middle of the edit graph is at most ceil((M + N) / 2)
+	fmt.Println("middle snake: ", snake)
 
-	// store the frontier of forward and reverse search
-	Fk := rect.left - rect.top
-	Rk := rect.right - rect.bottom
-	F := map[int]int{Fk + 1: rect.left}
-	R := map[int]int{Rk - 1: rect.right}
+	// solve left and right subproblems
+	leftRect := boundingRect{left: rect.left, top: rect.top, right: snake.u, bottom: snake.v}
+	rightRect := boundingRect{left: snake.x, top: snake.y, right: rect.right, bottom: rect.bottom}
+	fmt.Println("left rect: ", leftRect)
+	fmt.Println("right rect: ", rightRect)
 
-	diffs := []Diff{}
-	mid := int(math.Ceil(float64(M+N) / 2))
-	exit := false
-
-	// fix bug here this should start at d = 0
-	// for d := 1; d <= mid; d++ {
-	for d := 0; d <= mid; d++ {
-		// forward search
-		for k := -d + Fk; k <= d+Fk; k += 2 {
-			var x int
-			if k == -d+Fk || (k != d+Fk && F[k-1] < F[k+1]) {
-				// insertion
-				x = F[k+1]
-			} else {
-				// deletion
-				x = F[k-1] + 1
-			}
-			y := x - k
-			for x < rect.right && y < rect.bottom && a[x] == b[y] {
-				x++
-				y++
-			}
-			F[k] = x
+	leftDiffs := myersDiffLinear(a, b, leftRect)
+	rightDiffs := myersDiffLinear(a, b, rightRect)
+	diffs = append(diffs, leftDiffs...)
+	if !snake.empty() {
+		diff := Diff{
+			Type: Equal,
+			A1:   snake.u,
+			A2:   snake.x,
 		}
-
-		// reverse search
-		for k := -d + Rk; k <= d+Rk; k += 2 {
-			var u int
-			// fmt.Println("k=", k, d+Rk)
-			// fmt.Println("R: ", R)
-			if k == d+Rk || (k != -d+Rk && R[k+1] < R[k-1]) {
-				// move up
-				u = R[k-1]
-				// fmt.Println("move up")
-			} else {
-				// move left
-				u = R[k+1] - 1
-			}
-			v := u - k
-			for u > rect.left && v > rect.top && a[u-1] == b[v-1] {
-				u--
-				v--
-			}
-			R[k] = u
-
-			// check if we found an overlap with the forward search
-			x, exists := F[k]
-			if exists && x >= u {
-				// get the start and end of the snake
-				y := x - k
-
-				// solve left and right subproblems
-				leftRect := boundingRect{left: rect.left, top: rect.top, right: u, bottom: v}
-				rightRect := boundingRect{left: x, top: y, right: rect.right, bottom: rect.bottom}
-
-				leftDiffs := myersDiffLinear(a, b, leftRect)
-				rightDiffs := myersDiffLinear(a, b, rightRect)
-
-				diffs = append(diffs, leftDiffs...)
-				if x > u {
-					// non empty snake
-					diffs = append(diffs, Diff{
-						Type: Equal,
-						A1:   u,
-						A2:   x,
-					})
-				}
-				diffs = append(diffs, rightDiffs...)
-
-				exit = true
-				break
-			}
-		}
-
-		// break
-
-		if exit {
-			break
-		}
+		diffs = append(diffs, diff)
 	}
-
+	diffs = append(diffs, rightDiffs...)
 	return diffs
 }
 
+// Find the middle snake in the edit graph bounded by rect.
+// Performs a forward and backward search to find the overlapping snake.
+// The endpoints of the snake (x, y) and (u, v) lie on the same diagonal
+// such that x - y = u - v and x >= u.
+func findMiddleSnake(a, b []string, rect boundingRect) myersSnake {
+	// store the frontier of forward and reverse search
+	fk := rect.left - rect.top
+	rk := rect.right - rect.bottom
+	f := map[int]int{fk + 1: rect.left}
+	r := map[int]int{rk - 1: rect.right}
+
+	M := rect.right - rect.left
+	N := rect.bottom - rect.top
+	mid := int(math.Ceil(float64(M+N) / 2))
+
+	var snake *myersSnake
+	for d := 0; d <= mid; d++ {
+		fmt.Println("depth=", d)
+		snake = forwardSearch(a, b, d, fk, f, r, rect)
+		fmt.Println("f: ", f)
+		// if snake != nil {
+		// 	return *snake
+		// }
+		snake = reverseSearch(a, b, d, rk, f, r, rect)
+		fmt.Println("r: ", r)
+		if snake != nil {
+			return *snake
+		}
+	}
+
+	return myersSnake{}
+}
+
 // Performs forward search and returns the overlapping snake if found
-// a - source sequence
-// b - dest sequence
+// a - source string sequence
+// b - dest string sequence
 // d - current depth of search
 // fk - starting k at depth = 0
 // f - frontier of forward search storing (k, x)
 // r - frontier of reverse search storing (k, x)
 // rect - bounding rect of search space
-func forwardSearch[T comparable](a []T, b []T, d int, fk int, f map[int]int, r map[int]int, rect boundingRect) *myersSnake {
+func forwardSearch(a []string, b []string, d int, fk int, f map[int]int, r map[int]int, rect boundingRect) *myersSnake {
 	for k := -d + fk; k <= d+fk; k += 2 {
 		var x int
 		if k == -d+fk || (k != d+fk && f[k-1] < f[k+1]) {
@@ -199,7 +155,7 @@ func forwardSearch[T comparable](a []T, b []T, d int, fk int, f map[int]int, r m
 
 		// did we find an overlap
 		u, exists := r[k]
-		if exists && x > u {
+		if exists && x >= u {
 			v := u - k
 			snake := &myersSnake{
 				u: u,
@@ -214,6 +170,42 @@ func forwardSearch[T comparable](a []T, b []T, d int, fk int, f map[int]int, r m
 	return nil
 }
 
-func reverseSearch() *myersSnake {
+// Perform the reverse search and returns the overlapping snake if found
+// a - source string sequence
+// b - dest string sequence
+// d - current depth of search
+// rk - starting k at depth = 0
+// f - frontier of forward search storing (k, x)
+// r - frontier of reverse search storing (k, x)
+// rect - bounding rect of search space
+func reverseSearch(a []string, b []string, d int, rk int, f map[int]int, r map[int]int, rect boundingRect) *myersSnake {
+	for k := -d + rk; k <= d+rk; k += 2 {
+		var u int
+		if k == d+rk || (k != -d+rk && r[k+1] < r[k-1]) {
+			// move up
+			u = r[k-1]
+		} else {
+			// move left
+			u = r[k+1] - 1
+		}
+		v := u - k
+		for u > rect.left && v > rect.top && a[u-1] == b[v-1] {
+			u--
+			v--
+		}
+		r[k] = u
+		x, exists := f[k]
+		if exists && x >= u {
+			y := x - k
+			snake := &myersSnake{
+				u: u,
+				v: v,
+				x: x,
+				y: y,
+			}
+			return snake
+		}
+	}
+
 	return nil
 }
