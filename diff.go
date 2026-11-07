@@ -6,20 +6,12 @@ import (
 	"slices"
 )
 
-type Diff[T comparable] struct {
-	Type  DiffType
-	Index int
-	Value T
-
-	// source string indices range affected
-	// populated for deletions and matches
-	A1 int
-	A2 int
-
-	// dest string indices range affected
-	// populated for insertions
-	B1 int
-	B2 int
+type Diff struct {
+	Type DiffType // insert, delete, equal
+	A1   int      // start of src
+	A2   int      // end of src
+	B1   int      // start of dest
+	B2   int      // end of dest
 }
 
 type DiffType string
@@ -32,31 +24,41 @@ const (
 
 // Myers Diff Algorithm
 // https://publications.mpi-cbg.de/Myers_1986_6330.pdf
-func GetDiff[T comparable](src []T, dest []T) []Diff[T] {
+func GetDiff[T comparable](src []T, dest []T) []Diff {
 	trace := myersDiffTrace(src, dest)
 	path := backtrack(src, dest, trace)
-	diffs := []Diff[T]{}
+	diffs := []Diff{}
+
+	fmt.Println("path: ", path)
 
 	// from the path generate list of diffs
 	// that transform src seq to dest
 	for i := 0; i < len(path)-1; i++ {
 		curr, next := path[i], path[i+1]
-		// fmt.Println(curr, "->", next)
+		fmt.Println(curr, "->", next)
 		ck := curr[0] - curr[1]
 		nk := next[0] - next[1]
 		x, y := curr[0], curr[1]
+		u := next[0]
 
 		// backtrack the snake containing matching characters
 
-		var diff Diff[T]
-		if ck > nk {
+		fmt.Println("y=", y)
+		if ck > nk && y >= 0 {
 			// insertion
-			diff = Diff[T]{Type: Insert, Index: x, Value: dest[y]}
-		} else {
+			diff := Diff{Type: Insert, B1: y, B2: y + 1}
+			y += 1
+			diffs = append(diffs, diff)
+		} else if nk > ck {
 			// deletion
-			diff = Diff[T]{Type: Delete, Index: x, Value: src[x]}
+			diff := Diff{Type: Delete, A1: x, A2: x + 1}
+			x += 1
+			diffs = append(diffs, diff)
 		}
-		diffs = append(diffs, diff)
+
+		if x < u {
+			diffs = append(diffs, Diff{Type: Equal, A1: x, A2: u})
+		}
 	}
 
 	return diffs
@@ -79,7 +81,6 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 	trace := []map[int]int{}
 
 	for d := 0; d <= D; d++ {
-		// fmt.Println("d =", d)
 		trace = append(trace, maps.Clone(V))
 		for k := -d; k <= d; k += 2 {
 			var x int
@@ -109,7 +110,7 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 
 			// we have found the optimal edit path
 			if x >= M && y >= N {
-				return trace[1:]
+				return trace
 			}
 		}
 	}
@@ -120,7 +121,7 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 
 func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
 	M, N := len(src), len(dest)
-	depth := len(trace) // depth of path
+	depth := len(trace) - 1 // depth of path
 
 	// end node is at (d = len(trace), k = M - N)
 	node := [2]int{M, N}
@@ -128,18 +129,20 @@ func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
 	// path is sequence of (x, y) from (0, 0) -> (M, N)
 	path := [][2]int{node}
 
+	fmt.Println("trace:", trace)
+
 	// start backtracking
-	for d := depth; d > 0; d-- {
+	for d := depth; d >= 0; d-- {
 		k := node[0] - node[1]
 
 		// did we make an insertion or deletion to get to the current node?
-		if k == -d || (k != d && trace[d-1][k-1] < trace[d-1][k+1]) {
+		if k == -d || (k != d && trace[d][k-1] < trace[d][k+1]) {
 			k = k + 1
 		} else {
 			k = k - 1
 		}
 
-		x := trace[d-1][k]
+		x := trace[d][k]
 		y := x - k
 		node = [2]int{x, y}
 		path = append(path, node)
@@ -150,47 +153,7 @@ func backtrack[T comparable](src []T, dest []T, trace []map[int]int) [][2]int {
 	return path
 }
 
-// Display the diffs applied on source sequence
-func DisplayDiff[T comparable](src []T, diffs []Diff[T]) {
-	idxToDiffs := map[int][]Diff[T]{}
-	for _, diff := range diffs {
-		idx := diff.Index
-		diffsForIdx, exists := idxToDiffs[idx]
-		if exists {
-			diffsForIdx = append(diffsForIdx, diff)
-			idxToDiffs[idx] = diffsForIdx
-		} else {
-			idxToDiffs[idx] = []Diff[T]{diff}
-		}
-	}
-
-	for i := 0; i <= len(src); i++ {
-		diffsAtIdx, exists := idxToDiffs[i]
-		charDeleted := false
-		if exists {
-			for _, diff := range diffsAtIdx {
-				if diff.Type == Insert {
-					fmt.Println(
-						fmt.Sprintf("\033[42m%s\033[0m",
-							fmt.Sprintf("+ %v", diff.Value),
-						),
-					)
-				} else if diff.Type == Delete {
-					charDeleted = true
-					fmt.Println(
-						fmt.Sprintf("\033[41m%s\033[0m",
-							fmt.Sprintf("- %v", diff.Value),
-						))
-				}
-			}
-		}
-		if i < len(src) && !charDeleted {
-			fmt.Println(fmt.Sprintf("  %v", src[i]))
-		}
-	}
-}
-
-func Display[T comparable](a, b []T, diffs []Diff[T]) {
+func Display[T comparable](a, b []T, diffs []Diff) {
 	for _, diff := range diffs {
 		switch diff.Type {
 		case Equal:

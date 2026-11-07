@@ -1,1 +1,5 @@
 package godiff
+
+func MyersDiff() {
+
+}
