@@ -73,12 +73,12 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 
 	// V stores mapping of k to x at depth d
 	V := map[int]int{}
-	V[0] = 0
+	V[1] = 0
 
 	// keep track of trace
 	trace := []map[int]int{}
 
-	for d := 1; d <= D; d++ {
+	for d := 0; d <= D; d++ {
 		// fmt.Println("d =", d)
 		trace = append(trace, maps.Clone(V))
 		for k := -d; k <= d; k += 2 {
@@ -109,7 +109,7 @@ func myersDiffTrace[T comparable](src []T, dest []T) []map[int]int {
 
 			// we have found the optimal edit path
 			if x >= M && y >= N {
-				return trace
+				return trace[1:]
 			}
 		}
 	}
@@ -214,7 +214,6 @@ func Display[T comparable](a, b []T, diffs []Diff[T]) {
 
 		case Delete:
 			{
-				fmt.Println("delete: ", diff.A1, diff.A2)
 				lines := a[diff.A1:diff.A2]
 				for _, line := range lines {
 					fmt.Println(
