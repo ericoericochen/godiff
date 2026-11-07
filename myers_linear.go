@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+type myersFrontier = map[int]int
+
 type boundingRect struct {
 	left   int
 	top    int
@@ -170,4 +172,48 @@ func myersDiffLinear[T comparable](a, b []T, rect boundingRect) []Diff {
 	}
 
 	return diffs
+}
+
+// Performs forward search and returns the overlapping snake if found
+// a - source sequence
+// b - dest sequence
+// d - current depth of search
+// fk - starting k at depth = 0
+// f - frontier of forward search storing (k, x)
+// r - frontier of reverse search storing (k, x)
+// rect - bounding rect of search space
+func forwardSearch[T comparable](a []T, b []T, d int, fk int, f map[int]int, r map[int]int, rect boundingRect) *myersSnake {
+	for k := -d + fk; k <= d+fk; k += 2 {
+		var x int
+		if k == -d+fk || (k != d+fk && f[k-1] < f[k+1]) {
+			x = f[k+1]
+		} else {
+			x = f[k-1] + 1
+		}
+		y := x - k
+		for x < rect.right && y < rect.bottom && a[x] == b[y] {
+			x++
+			y++
+		}
+		f[k] = x
+
+		// did we find an overlap
+		u, exists := r[k]
+		if exists && x > u {
+			v := u - k
+			snake := &myersSnake{
+				u: u,
+				v: v,
+				x: x,
+				y: y,
+			}
+			return snake
+		}
+	}
+
+	return nil
+}
+
+func reverseSearch() *myersSnake {
+	return nil
 }
