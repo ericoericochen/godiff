@@ -29,21 +29,16 @@ func GetDiff(src []string, dest []string) []Diff {
 	path := backtrack(src, dest, trace)
 	diffs := []Diff{}
 
-	fmt.Println("path: ", path)
-
 	// from the path generate list of diffs
 	// that transform src seq to dest
 	for i := 0; i < len(path)-1; i++ {
 		curr, next := path[i], path[i+1]
-		fmt.Println(curr, "->", next)
 		ck := curr[0] - curr[1]
 		nk := next[0] - next[1]
 		x, y := curr[0], curr[1]
 		u := next[0]
 
 		// backtrack the snake containing matching characters
-
-		fmt.Println("y=", y)
 		if ck > nk && y >= 0 {
 			// insertion
 			diff := Diff{Type: Insert, B1: y, B2: y + 1}
@@ -129,8 +124,6 @@ func backtrack(src []string, dest []string, trace []map[int]int) [][2]int {
 	// path is sequence of (x, y) from (0, 0) -> (M, N)
 	path := [][2]int{node}
 
-	fmt.Println("trace:", trace)
-
 	// start backtracking
 	for d := depth; d >= 0; d-- {
 		k := node[0] - node[1]
@@ -160,7 +153,7 @@ func Display(a, b []string, diffs []Diff) {
 			{
 				lines := a[diff.A1:diff.A2]
 				for _, line := range lines {
-					fmt.Println(fmt.Sprintf("  %v", line))
+					fmt.Println(fmt.Sprintf(" %v", line))
 				}
 			}
 		case Insert:
@@ -169,7 +162,7 @@ func Display(a, b []string, diffs []Diff) {
 				for _, line := range lines {
 					fmt.Println(
 						fmt.Sprintf("\033[42m%s\033[0m",
-							fmt.Sprintf("+ %v", line),
+							fmt.Sprintf("+%v", line),
 						),
 					)
 				}
@@ -181,7 +174,7 @@ func Display(a, b []string, diffs []Diff) {
 				for _, line := range lines {
 					fmt.Println(
 						fmt.Sprintf("\033[41m%s\033[0m",
-							fmt.Sprintf("- %v", line),
+							fmt.Sprintf("-%v", line),
 						))
 				}
 			}

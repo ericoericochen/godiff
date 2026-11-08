@@ -1,0 +1,51 @@
+import logging
+from typing import Any
+
+import requests
+
+
+logger = logging.getLogger(__name__)
+
+
+class InvoiceClient:
+    """Fetch invoices from the billing service."""
+
+    def __init__(self, base_url: str, api_key: str) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.session = requests.Session()
+        self.session.headers.update({"Authorization": f"Bearer {api_key}"})
+
+    def list_invoices(self, customer_id: str) -> list[dict[str, Any]]:
+        """Return every invoice for a customer, ordered by creation date."""
+        invoices: list[dict[str, Any]] = []
+        params: dict[str, Any] = {"customer_id": customer_id, "limit": 100}
+        seen_cursors: set[str] = set()
+
+        while True:
+            response = self.session.get(
+                f"{self.base_url}/v1/invoices",
+                params=params,
+                timeout=15,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            page = payload["data"]
+            invoices.extend(page)
+
+            logger.debug(
+                "Fetched %d invoices for customer %s", len(page), customer_id
+            )
+
+            # Page length is not a reliable signal: the service can return
+            # partial pages even when more invoices are available.
+            next_cursor = payload.get("next_cursor")
+            if not next_cursor:
+                break
+
+            if next_cursor in seen_cursors:
+                raise RuntimeError("Billing service returned a repeated cursor")
+
+            seen_cursors.add(next_cursor)
+            params["cursor"] = next_cursor
+
+        return invoices
