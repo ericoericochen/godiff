@@ -5,8 +5,6 @@ import (
 	"math"
 )
 
-type myersFrontier = map[int]int
-
 type boundingRect struct {
 	left   int
 	top    int

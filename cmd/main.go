@@ -13,21 +13,24 @@ func main() {
 	// dest := []string{"h", "e", "l", "l", "o", "e", "a", "r", "t", "h"}
 	src := []string{"A", "B", "C"}
 	// dest := []string{"A", "B", "E"}
-	// dest := []string{"B", "C", "E"}
-	dest := []string{"B", "C", "E", "E"}
+	dest := []string{"B", "C", "E"}
+	// dest := []string{"B", "C", "E", "E"}
 
 	// src := []string{"A", "B", "C", "A", "B", "B", "A"}
 	// dest := []string{"C", "B", "A", "B", "A", "C"}
 
-	diffsO := godiff.GetDiff(src, dest)
-	godiff.Display(src, dest, diffsO)
+	// diffsO := godiff.GetDiff(src, dest)
+	// godiff.Display(src, dest, diffsO)
 
+	// // diffs := godiff.MyersDiffLinear(src, dest)
 	// diffs := godiff.MyersDiffLinear(src, dest)
-	diffs := godiff.MyersDiffLinear(src, dest)
-	fmt.Println("diffs: ")
-	for _, diff := range diffs {
-		fmt.Println(diff)
-	}
+	// fmt.Println("diffs: ")
+	// for _, diff := range diffs {
+	// 	fmt.Println(diff)
+	// }
 
-	godiff.Display(src, dest, diffs)
+	// godiff.Display(src, dest, diffs)\
+
+	diffs := godiff.MyersDiff(src, dest)
+	fmt.Println(diffs)
 }
