@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ericoericochen/godiff"
 )
@@ -13,11 +14,11 @@ func main() {
 	// dest := []string{"h", "e", "l", "l", "o", "e", "a", "r", "t", "h"}
 	src := []string{"A", "B", "C"}
 	// dest := []string{"A", "B", "E"}
-	dest := []string{"B", "C", "E"}
+	// dest := []string{"B", "C", "E"}
 	// dest := []string{"B", "C", "E", "E"}
 
 	// src := []string{"A", "B", "C", "A", "B", "B", "A"}
-	// dest := []string{"C", "B", "A", "B", "A", "C"}
+	dest := []string{"C", "B", "A", "B", "A", "C"}
 
 	// diffsO := godiff.GetDiff(src, dest)
 	// godiff.Display(src, dest, diffsO)
@@ -32,5 +33,11 @@ func main() {
 	// godiff.Display(src, dest, diffs)\
 
 	diffs := godiff.MyersDiff(src, dest)
-	fmt.Println(diffs)
+	// fmt.Println(diffs)
+	var output strings.Builder
+	godiff.WritePatches(&output, src, diffs, &godiff.DisplayPatchesOptions{
+		WithLines: false,
+	})
+
+	fmt.Println(output.String())
 }

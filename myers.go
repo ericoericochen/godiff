@@ -19,9 +19,12 @@ func MyersDiff(a, b []string) []Patch {
 	// returning the trace of (d, k) starting at depth=-1
 	// to depth=d - 1 where d is the shortest edit length
 	shortestPath := myersShortestPath(a, b)
-	fmt.Println("shortestPath: ", shortestPath)
 
-	return []Patch{}
+	// Compute the diffs from the shortest path
+	fmt.Println("shortestPath: ", shortestPath)
+	patches := patchesFromEditPath(a, b, shortestPath)
+	fmt.Println("patches: ", patches)
+	return patches
 }
 
 // Search the edit graph for the shortest path
@@ -93,16 +96,16 @@ func myersShortestPath(a, b []string) []myersNode {
 // n - length of `n` dest string sequence
 func myersBacktrack(parents map[myersNode]myersNode, m int, n int) []myersNode {
 	node := myersNode{k: m - n, x: m}
-	path := []myersNode{node}
+	path := []myersNode{}
 
 	// get the parent, then iteratively get the parent
 	// of the parent until we reach the start node (k=0, x=0)
 	for {
+		path = append(path, node)
 		parent, exists := parents[node]
 		if !exists {
 			break
 		}
-		path = append(path, parent)
 		node = parent
 	}
 
@@ -112,6 +115,49 @@ func myersBacktrack(parents map[myersNode]myersNode, m int, n int) []myersNode {
 
 // Construct the patches from the edit path
 // returned by myersBacktrack
-func patchesFromEditPath() {
+func patchesFromEditPath(a, b []string, path []myersNode) []Patch {
+	patches := []Patch{}
+	for i := 0; i < len(path)-1; i++ {
+		curr, next := path[i], path[i+1]
+		x, y := curr.x, curr.x-curr.k
+		u, v := next.x, next.x-next.k
+		diffK := next.k - curr.k
+		if diffK == -1 {
+			// insertion
+			patch := Patch{
+				Type:     PatchInsert,
+				OldStart: x,
+				OldEnd:   x,
+				NewStart: y,
+				NewEnd:   y + 1,
+				Value:    b[y : y+1],
+			}
+			y += 1
+			patches = append(patches, patch)
+		} else if diffK == 1 {
+			// deletion
+			patch := Patch{
+				Type:     PatchDelete,
+				OldStart: x,
+				OldEnd:   x + 1,
+				NewStart: y,
+				NewEnd:   y,
+			}
+			x += 1
+			patches = append(patches, patch)
+		}
 
+		if x < u {
+			patch := Patch{
+				Type:     PatchEqual,
+				OldStart: x,
+				OldEnd:   u,
+				NewStart: y,
+				NewEnd:   v,
+			}
+			patches = append(patches, patch)
+		}
+	}
+
+	return patches
 }

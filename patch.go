@@ -6,7 +6,7 @@ type Patch struct {
 	OldEnd   int
 	NewStart int
 	NewEnd   int
-	Value    string
+	Value    []string
 }
 
 type PatchType string
