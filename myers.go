@@ -5,6 +5,8 @@ import (
 	"slices"
 )
 
+// Node on the edit graph representing (x, y)
+// where k = x - y
 type myersNode struct {
 	k int
 	x int
@@ -22,7 +24,7 @@ func MyersDiff(a, b []string) []Patch {
 
 	// Compute the diffs from the shortest path
 	fmt.Println("shortestPath: ", shortestPath)
-	patches := patchesFromEditPath(a, b, shortestPath)
+	patches := patchesFromEditPath(b, shortestPath)
 	fmt.Println("patches: ", patches)
 	return patches
 }
@@ -75,9 +77,7 @@ func myersShortestPath(a, b []string) []myersNode {
 			// save (k, x)
 			f[k] = x
 			node := myersNode{k: k, x: x}
-			if parentMyersNode.x-parentMyersNode.k >= 0 {
-				parents[node] = parentMyersNode
-			}
+			parents[node] = parentMyersNode
 
 			// we have found the shortest edit path
 			if x >= m && y >= n {
@@ -115,13 +115,18 @@ func myersBacktrack(parents map[myersNode]myersNode, m int, n int) []myersNode {
 
 // Construct the patches from the edit path
 // returned by myersBacktrack
-func patchesFromEditPath(a, b []string, path []myersNode) []Patch {
+func patchesFromEditPath(b []string, path []myersNode) []Patch {
 	patches := []Patch{}
 	for i := 0; i < len(path)-1; i++ {
 		curr, next := path[i], path[i+1]
+		currK := curr.k
 		x, y := curr.x, curr.x-curr.k
+		if y < 0 {
+			y = 0
+			currK = 0
+		}
 		u, v := next.x, next.x-next.k
-		diffK := next.k - curr.k
+		diffK := next.k - currK
 		if diffK == -1 {
 			// insertion
 			patch := Patch{

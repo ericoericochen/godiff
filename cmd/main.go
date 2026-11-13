@@ -36,7 +36,7 @@ func main() {
 	// fmt.Println(diffs)
 	var output strings.Builder
 	godiff.WritePatches(&output, src, diffs, &godiff.DisplayPatchesOptions{
-		WithLines: false,
+		WithLines: true,
 	})
 
 	fmt.Println(output.String())
